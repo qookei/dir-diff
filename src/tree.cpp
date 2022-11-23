@@ -1,4 +1,4 @@
-/* Directory diff utility
+/* Directory diff utility - Tree processing
  * Copyright (C) 2022  qookie
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,39 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <tree.hpp>
+
 #include <iostream>
-#include <array>
-#include <filesystem>
 #include <fstream>
-#include <map>
-#include <botan/hash.h>
-#include <string_view>
-#include <charconv>
 #include <unordered_set>
-
-#include <getopt.h>
-
-#include <config.hpp>
-
-namespace fs = std::filesystem;
-
-using hash_output = std::array<uint8_t, 512 / 8>;
-
-template<>
-struct std::hash<hash_output> {
-	size_t operator()(const hash_output &h) const noexcept {
-		return std::hash<std::string_view>{}(std::string_view{reinterpret_cast<const char *>(h.data()), h.size()});
-	}
-};
-
-struct node {
-	fs::path path{};
-	hash_output hash{};
-
-	bool is_dir{false};
-	std::unordered_map<hash_output, std::unique_ptr<node>> children{};
-	std::map<std::string, hash_output> ordered_hashes{};
-};
 
 int progress_step = 0;
 const std::array<std::string, 8> progress_strs{
@@ -69,7 +41,7 @@ void update_progress(const fs::path &path, size_t root_width) {
 	std::cerr << "\e[2K\e[G " << indicator << " " << path_str << std::flush;
 }
 
-std::unique_ptr<node> build_node(auto &hash, const fs::directory_entry &dentry, size_t root_width) {
+std::unique_ptr<node> build_node(hash_fn &hash, const fs::directory_entry &dentry, size_t root_width) {
 	auto n = std::make_unique<node>();
 	n->path = dentry.path();
 
@@ -130,7 +102,7 @@ struct diff {
 };
 
 // Precondition: diff_nodes is only called on directory nodes (node::children::size() > 0)
-void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, int depth = 0) {
+void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, int depth) {
 	// Build a union of the sets of children from both nodes
 	std::unordered_set<std::string> comb_child;
 
@@ -209,68 +181,4 @@ void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, 
 	} else if (!depth) {
 		std::cout << "No differences.\n";
 	}
-}
-
-void display_version() {
-	std::cout << "dir-diff " << config::version << "\n";
-
-	std::cout << "Copyright (C) 2022 qookie.\n";
-	std::cout << "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n";
-	std::cout << "This is free software: you are free to change and redistribute it.\n";
-	std::cout << "There is NO WARRANTY, to the extent permitted by law.\n";
-
-}
-
-void display_help(const char *progname) {
-	std::cout << "Usage: " << progname << " [OPTION]... PATH PATH\n";
-	std::cout << "Compute the difference between the specified paths.\n\n";
-
-	std::cout << "Miscellaneous:\n";
-	std::cout << "  -v, --version                   display the version information and exit\n";
-	std::cout << "  -h, --help                      display this help text and exit\n";
-}
-
-int main(int argc, char **argv) {
-	fs::path p1, p2;
-
-	const struct option options[] = {
-		{"help",	no_argument,	0, 'h'},
-		{"version",	no_argument,	0, 'v'},
-		{0,		0,		0, 0}
-	};
-
-	while (true) {
-		int option_index = 0;
-		int c = getopt_long(argc, argv, "hv", options, &option_index);
-
-		if (c == -1)
-			break;
-
-		switch (c) {
-			case 'h': display_help(argv[0]); return 0;
-			case 'v': display_version(); return 0;
-
-			case '?': return 1;
-		}
-	}
-
-	if (optind < argc && argc - optind >= 2) {
-		p1 = argv[optind++];
-		p2 = argv[optind++];
-	} else {
-		std::cerr << "Missing positional argument(s): <path> <path>\n";
-		return 1;
-	}
-
-
-	auto blake2b = Botan::HashFunction::create("Blake2b");
-
-	std::cerr << "Processing tree 1\n";
-	auto n1 = build_node(blake2b, fs::directory_entry{p1}, static_cast<std::string>(p1).size());
-	std::cerr << "\e[2K\e[G" << std::flush;
-	std::cerr << "Processing tree 2\n";
-	auto n2 = build_node(blake2b, fs::directory_entry{p2}, static_cast<std::string>(p2).size());
-	std::cerr << "\e[2K\e[G" << std::flush;
-
-	diff_nodes(n1, n2);
 }
