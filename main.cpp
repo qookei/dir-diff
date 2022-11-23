@@ -24,6 +24,8 @@
 #include <charconv>
 #include <unordered_set>
 
+#include <getopt.h>
+
 namespace fs = std::filesystem;
 
 using hash_output = std::array<uint8_t, 512 / 8>;
@@ -207,14 +209,57 @@ void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, 
 	}
 }
 
+void display_version() {
+	std::cout << "dir-diff 0.1\n";
+
+	std::cout << "Copyright (C) 2022 qookie.\n";
+	std::cout << "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n";
+	std::cout << "This is free software: you are free to change and redistribute it.\n";
+	std::cout << "There is NO WARRANTY, to the extent permitted by law.\n";
+
+}
+
+void display_help(const char *progname) {
+	std::cout << "Usage: " << progname << " [OPTION]... PATH PATH\n";
+	std::cout << "Compute the difference between the specified paths.\n\n";
+
+	std::cout << "Miscellaneous:\n";
+	std::cout << "  -v, --version                   display the version information and exit\n";
+	std::cout << "  -h, --help                      display this help text and exit\n";
+}
+
 int main(int argc, char **argv) {
-	if (argc != 3) {
-		std::cerr << "usage: <path 1> <path 2>\n";
+	fs::path p1, p2;
+
+	const struct option options[] = {
+		{"help",	no_argument,	0, 'h'},
+		{"version",	no_argument,	0, 'v'},
+		{0,		0,		0, 0}
+	};
+
+	while (true) {
+		int option_index = 0;
+		int c = getopt_long(argc, argv, "hv", options, &option_index);
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+			case 'h': display_help(argv[0]); return 0;
+			case 'v': display_version(); return 0;
+
+			case '?': return 1;
+		}
+	}
+
+	if (optind < argc && argc - optind >= 2) {
+		p1 = argv[optind++];
+		p2 = argv[optind++];
+	} else {
+		std::cerr << "Missing positional argument(s): <path> <path>\n";
 		return 1;
 	}
 
-	fs::path p1 = argv[1];
-	fs::path p2 = argv[2];
 
 	auto blake2b = Botan::HashFunction::create("Blake2b");
 
