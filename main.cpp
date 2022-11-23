@@ -26,6 +26,8 @@
 
 #include <getopt.h>
 
+#include <config.hpp>
+
 namespace fs = std::filesystem;
 
 using hash_output = std::array<uint8_t, 512 / 8>;
@@ -210,7 +212,7 @@ void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, 
 }
 
 void display_version() {
-	std::cout << "dir-diff 0.1\n";
+	std::cout << "dir-diff " << config::version << "\n";
 
 	std::cout << "Copyright (C) 2022 qookie.\n";
 	std::cout << "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n";

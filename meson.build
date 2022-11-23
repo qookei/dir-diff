@@ -20,6 +20,13 @@ project('dir-diff', 'cpp',
 
 botan_dep = dependency('botan-2')
 
+conf_data = configuration_data()
+conf_data.set_quoted('VERSION', meson.project_version())
+
+configure_file(input : 'config.hpp.in',
+	output : 'config.hpp',
+	configuration : conf_data)
+
 executable('dir-diff', 'main.cpp',
 	dependencies : botan_dep,
 	install : true)
