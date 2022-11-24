@@ -52,6 +52,8 @@ bool are_files_different(const fs::directory_entry &a, const fs::directory_entry
 	if (st_a.st_dev == st_b.st_dev && st_a.st_ino == st_b.st_ino)
 		return false;
 
+	update_progress(a.path());
+
 	// Same target means symlinks are the same
 	if (a.is_symlink()) {
 		return fs::read_symlink(a) != fs::read_symlink(b);

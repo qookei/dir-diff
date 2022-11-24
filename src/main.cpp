@@ -45,11 +45,13 @@ const std::array<std::string, 8> progress_strs{
 	"|", "/", "-", "\\", "|", "/", "-", "\\"
 };
 
+fs::path root1, root2;
+
 void update_progress(const fs::path &path) {
 	const auto &indicator = progress_strs[progress_step];
 	progress_step = (progress_step + 1) % progress_strs.size();
 
-	std::string path_str = path;
+	std::string path_str = path.string().substr(root1.string().size());
 
 	constexpr int width = 72;
 
@@ -89,7 +91,6 @@ void display_diff(const diff &diff, int depth = 0) {
 
 
 int main(int argc, char **argv) {
-	fs::path p1, p2;
 
 	const struct option options[] = {
 		{"help",	no_argument,	0, 'h'},
@@ -113,14 +114,14 @@ int main(int argc, char **argv) {
 	}
 
 	if (optind < argc && argc - optind >= 2) {
-		p1 = argv[optind++];
-		p2 = argv[optind++];
+		root1 = argv[optind++];
+		root2 = argv[optind++];
 	} else {
 		std::cerr << "Missing positional argument(s): <path> <path>\n";
 		return 1;
 	}
 
-	auto diffs = diff_trees(fs::directory_entry{p1}, fs::directory_entry{p2});
+	auto diffs = diff_trees(fs::directory_entry{root1}, fs::directory_entry{root2});
 	std::cerr << "\e[2K\e[G" << std::flush;
 
 	if (!diffs.size()) {
