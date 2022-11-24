@@ -24,20 +24,23 @@
 void display_version() {
 	std::cout << "dir-diff " << config::version << "\n";
 
-	std::cout << "Copyright (C) 2022 qookie.\n";
-	std::cout << "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n";
-	std::cout << "This is free software: you are free to change and redistribute it.\n";
-	std::cout << "There is NO WARRANTY, to the extent permitted by law.\n";
-
+	std::cout << "\
+Copyright (C) 2022 qookie.\n\
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n\
+This is free software: you are free to change and redistribute it.\n\
+There is NO WARRANTY, to the extent permitted by law.\n";
 }
 
 void display_help(const char *progname) {
 	std::cout << "Usage: " << progname << " [OPTION]... PATH PATH\n";
-	std::cout << "Compute the difference between the specified paths.\n\n";
+	std::cout << "Compute the difference between the specified paths.\n";
 
-	std::cout << "Miscellaneous:\n";
-	std::cout << "  -v, --version                   display the version information and exit\n";
-	std::cout << "  -h, --help                      display this help text and exit\n";
+	std::cout << "\n";
+
+	std::cout << "\
+Miscellaneous:\n\
+  -v, --version                   display the version information and exit\n\
+  -h, --help                      display this help text and exit\n";
 }
 
 int progress_step = 0;
