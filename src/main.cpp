@@ -20,36 +20,37 @@
 #include <filesystem>
 #include <iostream>
 #include <tree.hpp>
+#include <print.hpp>
 
 void display_version() {
-	std::cout << "dir-diff " << config::version << "\n";
+	fmtns::print("dir-diff {0}\n", config::version);
 
-	std::cout << "\
-Copyright (C) 2022 qookie.\n\
+	fmtns::print("\
+Copyright (C) {0} qookie.\n\
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n\
 This is free software: you are free to change and redistribute it.\n\
-There is NO WARRANTY, to the extent permitted by law.\n";
+There is NO WARRANTY, to the extent permitted by law.\n", 2022);
 }
 
 void display_help(const char *progname) {
-	std::cout << "Usage: " << progname << " [OPTION]... PATH PATH\n";
-	std::cout << "Compute the difference between the specified paths.\n";
+	fmtns::print("Usage: {0} [OPTION]... PATH PATH\n", progname);
+	fmtns::print("Compute the difference between the specified paths.\n");
 
-	std::cout << "\n";
+	fmtns::print("\n");
 
-	std::cout << "\
+	fmtns::print("\
 Output control:\n\
   -l, --no-legend                 don't display the legend before the diff\n\
-  -q, --quiet                     don't display the progress indicator\n";
+  -q, --quiet                     don't display the progress indicator\n");
 
-	std::cout << "\n";
+	fmtns::print("\n");
 
-	std::cout << "\
+	fmtns::print("\
 Miscellaneous:\n\
   -v, --version                   display the version information and exit\n\
-  -h, --help                      display this help text and exit\n";
+  -h, --help                      display this help text and exit\n");
 
-	std::cout << "\n";
+	fmtns::print("\n");
 }
 
 int progress_step = 0;
@@ -75,36 +76,35 @@ void update_progress(const fs::path &path) {
 		path_str = "..." + path_str.substr(path_str.size() - (width - 3), width - 3);
 	}
 
-	std::cerr << "\e[2K\e[G " << indicator << " " << path_str << std::flush;
+	fmtns::print(std::cerr, "\e[2K\e[G {0} {1}", indicator, path_str);
 }
 
 void display_diff(const diff &diff, int depth = 0) {
 	for (int i = 0; i < depth; i++)
-		std::cout << "|  ";
+		fmtns::print("|  ");
 
 	switch (diff.type) {
 		using enum diff_type;
 		case missing:
-			std::cout << (diff.n ? "\e[31m-" : "\e[32m+") << " " << diff.name << "\e[0m\n";
+			fmtns::print("{0} {1}\e[0m\n", diff.n ? "\e[31m-" : "\e[32m+", diff.name);
 			break;
 		case file_type:
-			std::cout << "\e[34m! " << diff.name << "\e[0m\n";
+			fmtns::print("\e[34m! {0}\e[0m\n", diff.name);
 			break;
 		case contents:
 			if (!diff.sub_diffs.size()) {
-				std::cout << "\e[33m? " << diff.name << "\e[0m\n";
+				fmtns::print("\e[33m? {0}\e[0m\n", diff.name);
 			} else if (diff.name == ".git") {
 				// Avoid showing contents of .git
-				std::cout << "\e[33m? " << diff.name << "\e[0m (not descending)\n";
+				fmtns::print("\e[33m? {0} (not descending)\e[0m\n", diff.name);
 			} else {
-				std::cout << "\e[33m? " << diff.name << "\e[0m:\n";
+				fmtns::print("\e[33m? {0}\e[0m:\n", diff.name);
 				for (const auto &sub : diff.sub_diffs)
 					display_diff(sub, depth + 1);
 			}
 			break;
 	}
 }
-
 
 int main(int argc, char **argv) {
 	const struct option options[] = {
@@ -138,26 +138,28 @@ int main(int argc, char **argv) {
 		root1 = argv[optind++];
 		root2 = argv[optind++];
 	} else {
-		std::cerr << "Missing positional argument(s): <path> <path>\n";
+		fmtns::print("Missing positional argument(s): <path> <path>\n");
 		return 1;
 	}
 
 	auto diffs = diff_trees(fs::directory_entry{root1}, fs::directory_entry{root2});
 	if (!run_quietly)
-		std::cerr << "\e[2K\e[G" << std::flush;
+		fmtns::print(std::cerr, "\e[2K\e[G");
 
 	if (!diffs.size()) {
-		std::cout << "No differences.\n";
+		fmtns::print("No differences.\n");
 	} else {
 		diff root{diff_type::contents, -1, "<root>", std::move(diffs)};
 
-		if (print_legend)
-			std::cout << "Legend:"
-				<< "\t\e[31m- foo\e[0m" << " - exists only in 1st tree\n"
-				<< "\t\e[32m+ foo\e[0m" << " - exists only in 2nd tree\n"
-				<< "\t\e[34m! foo\e[0m" << " - types differ (directory vs file)\n"
-				<< "\t\e[33m? foo\e[0m" << " - contents differ\n";
-		std::cout << "Diff:\n";
+		if (print_legend) {
+			fmtns::print("Legend:\n");
+			fmtns::print("  \e[31m- foo\e[0m - exists only in 1st tree\n");
+			fmtns::print("  \e[32m+ foo\e[0m - exists only in 2nd tree\n");
+			fmtns::print("  \e[34m! foo\e[0m - types differ (directory vs file, etc)\n");
+			fmtns::print("  \e[33m? foo\e[0m - contents differ\n");
+		}
+
+		fmtns::print("Diff:\n");
 
 		display_diff(root);
 	}

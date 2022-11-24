@@ -18,6 +18,12 @@ project('dir-diff', 'cpp',
 	version : '0.1',
 	default_options : ['cpp_std=c++20'])
 
+deps = []
+
+if not meson.get_compiler('cpp').has_header('format')
+	deps += dependency('fmt')
+endif
+
 conf_data = configuration_data()
 conf_data.set_quoted('VERSION', meson.project_version())
 
@@ -28,4 +34,5 @@ configure_file(input : 'src/config.hpp.in',
 executable('dir-diff',
 	'src/main.cpp', 'src/tree.cpp',
 	include_directories : 'src/',
+	dependencies : deps,
 	install : true)
