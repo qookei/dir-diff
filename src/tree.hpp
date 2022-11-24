@@ -16,33 +16,27 @@
 
 #pragma once
 
-#include <array>
-#include <filesystem>
-#include <map>
 #include <botan/hash.h>
-#include <string_view>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
-using hash_output = std::array<uint8_t, 512 / 8>;
 using hash_fn = std::unique_ptr<Botan::HashFunction>;
 
-template<>
-struct std::hash<hash_output> {
-	size_t operator()(const hash_output &h) const noexcept {
-		return std::hash<std::string_view>{}(std::string_view{reinterpret_cast<const char *>(h.data()), h.size()});
-	}
+enum class diff_type {
+	missing, file_type, contents
 };
 
-struct node {
-	fs::path path{};
-	hash_output hash{};
+struct diff {
+	diff_type type;
+	int n;
+	std::string name;
 
-	bool is_dir{false};
-	std::unordered_map<hash_output, std::unique_ptr<node>> children{};
-	std::map<std::string, hash_output> ordered_hashes{};
+	std::vector<diff> sub_diffs = {};
 };
 
-std::unique_ptr<node> build_node(hash_fn &hash, const fs::directory_entry &dentry, size_t root_width);
+void update_progress(const fs::path &path);
 
-void diff_nodes(const std::unique_ptr<node> &a, const std::unique_ptr<node> &b, int depth = 0);
+std::vector<diff> diff_trees(hash_fn &hash, const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry);

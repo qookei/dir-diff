@@ -14,11 +14,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <getopt.h>
-
-#include <tree.hpp>
+#include <array>
 #include <config.hpp>
+#include <filesystem>
+#include <iostream>
+#include <tree.hpp>
+#include <botan/hash.h>
 
 void display_version() {
 	std::cout << "dir-diff " << config::version << "\n";
@@ -38,6 +40,54 @@ void display_help(const char *progname) {
 	std::cout << "  -v, --version                   display the version information and exit\n";
 	std::cout << "  -h, --help                      display this help text and exit\n";
 }
+
+int progress_step = 0;
+const std::array<std::string, 8> progress_strs{
+	"|", "/", "-", "\\", "|", "/", "-", "\\"
+};
+
+void update_progress(const fs::path &path) {
+	const auto &indicator = progress_strs[progress_step];
+	progress_step = (progress_step + 1) % progress_strs.size();
+
+	std::string path_str = path;
+
+	constexpr int width = 72;
+
+	if (path_str.size() > width) {
+		path_str = "..." + path_str.substr(path_str.size() - (width - 3), width - 3);
+	}
+
+	std::cerr << "\e[2K\e[G " << indicator << " " << path_str << std::flush;
+}
+
+void display_diff(const diff &diff, int depth = 0) {
+	for (int i = 0; i < depth; i++)
+		std::cout << "|  ";
+
+	switch (diff.type) {
+		using enum diff_type;
+		case missing:
+			std::cout << (diff.n ? "\e[31m-" : "\e[32m+") << " " << diff.name << "\e[0m\n";
+			break;
+		case file_type:
+			std::cout << "\e[34m! " << diff.name << "\e[0m\n";
+			break;
+		case contents:
+			if (!diff.sub_diffs.size()) {
+				std::cout << "\e[33m? " << diff.name << "\e[0m\n";
+			} else if (diff.name == ".git") {
+				// Avoid showing contents of .git
+				std::cout << "\e[33m? " << diff.name << "\e[0m (not descending)\n";
+			} else {
+				std::cout << "\e[33m? " << diff.name << "\e[0m:\n";
+				for (const auto &sub : diff.sub_diffs)
+					display_diff(sub, depth + 1);
+			}
+			break;
+	}
+}
+
 
 int main(int argc, char **argv) {
 	fs::path p1, p2;
@@ -71,15 +121,22 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-
 	auto blake2b = Botan::HashFunction::create("Blake2b");
-
-	std::cerr << "Processing tree 1\n";
-	auto n1 = build_node(blake2b, fs::directory_entry{p1}, static_cast<std::string>(p1).size());
-	std::cerr << "\e[2K\e[G" << std::flush;
-	std::cerr << "Processing tree 2\n";
-	auto n2 = build_node(blake2b, fs::directory_entry{p2}, static_cast<std::string>(p2).size());
+	auto diffs = diff_trees(blake2b, fs::directory_entry{p1}, fs::directory_entry{p2});
 	std::cerr << "\e[2K\e[G" << std::flush;
 
-	diff_nodes(n1, n2);
+	if (!diffs.size()) {
+		std::cout << "No differences.\n";
+	} else {
+		diff root{diff_type::contents, -1, "<root>", std::move(diffs)};
+
+		std::cout << "Legend:"
+			<< "\t\e[31m- foo\e[0m" << " - exists only in 1st tree\n"
+			<< "\t\e[32m+ foo\e[0m" << " - exists only in 2nd tree\n"
+			<< "\t\e[34m! foo\e[0m" << " - types differ (directory vs file)\n"
+			<< "\t\e[33m? foo\e[0m" << " - contents differ\n";
+		std::cout << "Diff:\n";
+
+		display_diff(root);
+	}
 }
