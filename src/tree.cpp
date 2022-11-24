@@ -24,15 +24,18 @@
 #include <cstdint>
 
 int file_type_i(const fs::directory_entry &dentry) {
-	if (dentry.is_block_file()) return 0;
-	if (dentry.is_character_file()) return 1;
-	if (dentry.is_directory()) return 2;
-	if (dentry.is_fifo()) return 3;
-	if (dentry.is_other()) return 4;
-	if (dentry.is_regular_file()) return 5;
-	if (dentry.is_socket()) return 6;
-	if (dentry.is_symlink()) return 7;
-	return -1;
+	int out = 0;
+
+	if (dentry.is_block_file())	out |= (1 << 0);
+	if (dentry.is_character_file())	out |= (1 << 1);
+	if (dentry.is_directory())	out |= (1 << 2);
+	if (dentry.is_fifo())		out |= (1 << 3);
+	if (dentry.is_other())		out |= (1 << 4);
+	if (dentry.is_regular_file())	out |= (1 << 5);
+	if (dentry.is_socket())		out |= (1 << 6);
+	if (dentry.is_symlink())	out |= (1 << 7);
+
+	return out;
 }
 
 bool are_files_different(const fs::directory_entry &a, const fs::directory_entry &b) {
