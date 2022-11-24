@@ -14,29 +14,37 @@ To build it, you will need:
 
 ## Usage
 
-When invoked with the wrong number of arguments, the tool will print the
-following usage message:
+Basic usage is as follows:
 
 ```
-usage: <path 1> <path 2>
+$ dir-diff dir1 dir2
 ```
 
 The two paths should point to the directories whose contents are to be compared.
 
-When a difference is detected, it will first print a legend, and the diff below.
+For a list of options, see `dir-diff --help`.
+
+When a difference is detected, the program will first print a legend, and the diff
+below.
 
 ## How it works
 
-The tool first builds an in-memory representation of both file system trees
-specified, including computing hashes of every file (for directories, the hashes
-and names of each child are used to compute a hash). The hash algorithm used is
-Blake2b.
+The tool starts at the root of both directories, and first builds a union of the
+sets of files in both directories.
 
-Next, after both trees have been processed, the tool starts at the root, and:
-1. builds a union of the sets of files in both directories,
-2. checks which files mismatch (either by not existing in one, being different
-   kinds of files, or by contents),
-3. displays the difference, additionally repeating this process for subtrees.
+Then checks which files mismatch. The way the mismatch is detected is as follows
+(the steps are ordered in a way where if a match/mismatch is detected, further checks
+are skipped):
+
+1. the existence of the file in both directories is checked (mismatch if missing in one),
+2. the file type is compared (mismatch if not equal),
+3. the file contents are compared, for directories this means applying the same
+   algorithm recursively, while for other file types:
+     1. the file sizes are compared (regular files only, mismatch if not equal),
+     2. the inode and device numbers they're on are compared (same if numbers match),
+     3. the target device numbers are compared (for special files, same if equal),
+     4. the hashes of the contents are compared (regular files and symlinks,
+        Blake2b is the hash algorithm that's used).
 
 ## License
 
