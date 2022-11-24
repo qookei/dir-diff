@@ -21,35 +21,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <botan/hash.h>
 #include <cstdint>
-
-auto hash_dentry(hash_fn &hash, const fs::directory_entry &dentry) {
-	update_progress(dentry.path());
-
-	if (dentry.is_symlink()) {
-		// Compute hash of link destination
-		std::string target = fs::read_symlink(dentry);
-		hash->update(reinterpret_cast<uint8_t *>(target.data()), target.size());
-	} else if (dentry.is_regular_file()) {
-		// Compute hash of file contents
-		std::ifstream ifs{dentry.path(), std::ios::binary};
-
-		char buf[4096];
-		while (true) {
-			ifs.read(buf, 4096);
-			auto count = ifs.gcount();
-
-			hash->update(reinterpret_cast<uint8_t *>(buf), count);
-
-			if (count < 4096)
-				break;
-		}
-	}
-
-	return hash->final();
-}
-
 
 int file_type_i(const fs::directory_entry &dentry) {
 	if (dentry.is_block_file()) return 0;
@@ -63,7 +35,7 @@ int file_type_i(const fs::directory_entry &dentry) {
 	return -1;
 }
 
-bool are_files_different(hash_fn &hash, const fs::directory_entry &a, const fs::directory_entry &b) {
+bool are_files_different(const fs::directory_entry &a, const fs::directory_entry &b) {
 	// Regular files of different size are bound to be different
 	if (a.is_regular_file() && a.file_size() != b.file_size())
 		return true;
@@ -77,14 +49,41 @@ bool are_files_different(hash_fn &hash, const fs::directory_entry &a, const fs::
 	if (st_a.st_dev == st_b.st_dev && st_a.st_ino == st_b.st_ino)
 		return false;
 
-	// Same device numbers of special files means they are the same
-	if (!a.is_regular_file() && !a.is_symlink())
-		return st_a.st_rdev != st_b.st_rdev;
+	// Same target means symlinks are the same
+	if (a.is_symlink()) {
+		return fs::read_symlink(a) != fs::read_symlink(b);
+	}
 
-	return hash_dentry(hash, a) == hash_dentry(hash, b);
+	// Same contents means regular files are the same
+	if (a.is_regular_file()) {
+		std::ifstream a_ifs{a.path(), std::ios::binary};
+		std::ifstream b_ifs{b.path(), std::ios::binary};
+
+		char a_buf[4096], b_buf[4096];
+		while (true) {
+			a_ifs.read(a_buf, 4096);
+			auto a_count = a_ifs.gcount();
+
+			b_ifs.read(b_buf, 4096);
+			auto b_count = b_ifs.gcount();
+
+			if (std::string_view{a_buf, static_cast<size_t>(a_count)} !=
+					std::string_view{b_buf, static_cast<size_t>(b_count)})
+				return true;
+
+			if (a_count < 4096 || b_count < 4096)
+				break;
+		}
+
+		return false;
+	}
+
+	// Only special files (!symlink && !regular) get here
+	// Same device numbers of special files means they are the same
+	return st_a.st_rdev != st_b.st_rdev;
 }
 
-std::vector<diff> diff_trees(hash_fn &hash, const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry) {
+std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry) {
 	// Build a union of the sets of children from both directories
 	std::unordered_set<std::string> comb_child;
 	std::unordered_map<std::string, fs::directory_entry> a_children, b_children;
@@ -127,7 +126,7 @@ std::vector<diff> diff_trees(hash_fn &hash, const fs::directory_entry &a_dentry,
 		}
 
 		if (a_child.is_directory()) {
-			auto sub_diff = diff_trees(hash, a_child, b_child);
+			auto sub_diff = diff_trees(a_child, b_child);
 			if (sub_diff.size()) {
 				diffs.push_back({diff_type::contents, -1,
 						name, std::move(sub_diff)});
@@ -136,7 +135,7 @@ std::vector<diff> diff_trees(hash_fn &hash, const fs::directory_entry &a_dentry,
 			continue;
 		}
 
-		if (are_files_different(hash, a_child, b_child)) {
+		if (are_files_different(a_child, b_child)) {
 			diffs.push_back({diff_type::contents, -1, name});
 		}
 	}

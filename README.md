@@ -9,8 +9,7 @@ dir-diff is a regular [Meson](https://mesonbuild.com) project, with no extra
 compile-time options.
 
 To build it, you will need:
- - a C++20 compiler,
- - the [Botan](https://botan.randombit.net/index.html) library.
+ - a C++20 compiler.
 
 ## Usage
 
@@ -41,10 +40,10 @@ are skipped):
 3. the file contents are compared, for directories this means applying the same
    algorithm recursively, while for other file types:
      1. the file sizes are compared (regular files only, mismatch if not equal),
-     2. the inode and device numbers they're on are compared (same if numbers match),
-     3. the target device numbers are compared (for special files, same if equal),
-     4. the hashes of the contents are compared (regular files and symlinks,
-        Blake2b is the hash algorithm that's used).
+     2. the inode and device numbers they're on are compared (assumed same if numbers match),
+     3. the link targets are compared (for symlinks),
+     4. the file contents are compared (for regular files),
+     5. the target device numbers are compared (for special files).
 
 ## License
 

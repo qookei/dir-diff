@@ -18,8 +18,6 @@ project('dir-diff', 'cpp',
 	version : '0.1',
 	default_options : ['cpp_std=c++20'])
 
-botan_dep = dependency('botan-2')
-
 conf_data = configuration_data()
 conf_data.set_quoted('VERSION', meson.project_version())
 
@@ -30,5 +28,4 @@ configure_file(input : 'src/config.hpp.in',
 executable('dir-diff',
 	'src/main.cpp', 'src/tree.cpp',
 	include_directories : 'src/',
-	dependencies : botan_dep,
 	install : true)

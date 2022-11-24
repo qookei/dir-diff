@@ -20,7 +20,6 @@
 #include <filesystem>
 #include <iostream>
 #include <tree.hpp>
-#include <botan/hash.h>
 
 void display_version() {
 	std::cout << "dir-diff " << config::version << "\n";
@@ -121,8 +120,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	auto blake2b = Botan::HashFunction::create("Blake2b");
-	auto diffs = diff_trees(blake2b, fs::directory_entry{p1}, fs::directory_entry{p2});
+	auto diffs = diff_trees(fs::directory_entry{p1}, fs::directory_entry{p2});
 	std::cerr << "\e[2K\e[G" << std::flush;
 
 	if (!diffs.size()) {

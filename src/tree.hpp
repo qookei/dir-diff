@@ -16,14 +16,11 @@
 
 #pragma once
 
-#include <botan/hash.h>
 #include <filesystem>
 #include <string>
 #include <vector>
 
 namespace fs = std::filesystem;
-
-using hash_fn = std::unique_ptr<Botan::HashFunction>;
 
 enum class diff_type {
 	missing, file_type, contents
@@ -39,4 +36,4 @@ struct diff {
 
 void update_progress(const fs::path &path);
 
-std::vector<diff> diff_trees(hash_fn &hash, const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry);
+std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry);
