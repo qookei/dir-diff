@@ -24,6 +24,9 @@ namespace fmtns {
 	using std::format;
 
 	template <typename ...Args>
+	using format_string = std::format_string<Args...>;
+
+	template <typename ...Args>
 	constexpr void print(std::format_string<Args...> fmt, Args &&...args) {
 		std::cout << format(fmt, std::forward<Args>(args)...);
 	}
