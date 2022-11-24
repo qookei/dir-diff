@@ -38,9 +38,18 @@ void display_help(const char *progname) {
 	std::cout << "\n";
 
 	std::cout << "\
+Output control:\n\
+  -l, --no-legend                 don't display the legend before the diff\n\
+  -q, --quiet                     don't display the progress indicator\n";
+
+	std::cout << "\n";
+
+	std::cout << "\
 Miscellaneous:\n\
   -v, --version                   display the version information and exit\n\
   -h, --help                      display this help text and exit\n";
+
+	std::cout << "\n";
 }
 
 int progress_step = 0;
@@ -49,8 +58,12 @@ const std::array<std::string, 8> progress_strs{
 };
 
 fs::path root1, root2;
+bool run_quietly = false;
 
 void update_progress(const fs::path &path) {
+	if (run_quietly)
+		return;
+
 	const auto &indicator = progress_strs[progress_step];
 	progress_step = (progress_step + 1) % progress_strs.size();
 
@@ -94,16 +107,19 @@ void display_diff(const diff &diff, int depth = 0) {
 
 
 int main(int argc, char **argv) {
-
 	const struct option options[] = {
 		{"help",	no_argument,	0, 'h'},
 		{"version",	no_argument,	0, 'v'},
+		{"no-legend",	no_argument,	0, 'l'},
+		{"quiet",	no_argument,	0, 'q'},
 		{0,		0,		0, 0}
 	};
 
+	bool print_legend = true;
+
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hv", options, &option_index);
+		int c = getopt_long(argc, argv, "hvlq", options, &option_index);
 
 		if (c == -1)
 			break;
@@ -111,6 +127,8 @@ int main(int argc, char **argv) {
 		switch (c) {
 			case 'h': display_help(argv[0]); return 0;
 			case 'v': display_version(); return 0;
+			case 'l': print_legend = false; break;
+			case 'q': run_quietly = true; break;
 
 			case '?': return 1;
 		}
@@ -125,18 +143,20 @@ int main(int argc, char **argv) {
 	}
 
 	auto diffs = diff_trees(fs::directory_entry{root1}, fs::directory_entry{root2});
-	std::cerr << "\e[2K\e[G" << std::flush;
+	if (!run_quietly)
+		std::cerr << "\e[2K\e[G" << std::flush;
 
 	if (!diffs.size()) {
 		std::cout << "No differences.\n";
 	} else {
 		diff root{diff_type::contents, -1, "<root>", std::move(diffs)};
 
-		std::cout << "Legend:"
-			<< "\t\e[31m- foo\e[0m" << " - exists only in 1st tree\n"
-			<< "\t\e[32m+ foo\e[0m" << " - exists only in 2nd tree\n"
-			<< "\t\e[34m! foo\e[0m" << " - types differ (directory vs file)\n"
-			<< "\t\e[33m? foo\e[0m" << " - contents differ\n";
+		if (print_legend)
+			std::cout << "Legend:"
+				<< "\t\e[31m- foo\e[0m" << " - exists only in 1st tree\n"
+				<< "\t\e[32m+ foo\e[0m" << " - exists only in 2nd tree\n"
+				<< "\t\e[34m! foo\e[0m" << " - types differ (directory vs file)\n"
+				<< "\t\e[33m? foo\e[0m" << " - contents differ\n";
 		std::cout << "Diff:\n";
 
 		display_diff(root);
