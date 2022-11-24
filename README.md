@@ -10,6 +10,8 @@ compile-time options.
 
 To build it, you will need:
  - a C++20 compiler.
+ - [fmt](https://github.com/fmtlib/fmt) if your C++ standard library does not
+   provide `std::format`/`std::print`.
 
 ## Usage
 
