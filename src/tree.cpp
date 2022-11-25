@@ -23,30 +23,19 @@
 #include <utility>
 #include <cstdint>
 
-int file_type_i(const fs::directory_entry &dentry) {
-	int out = 0;
-
-	if (dentry.is_block_file())	out |= (1 << 0);
-	if (dentry.is_character_file())	out |= (1 << 1);
-	if (dentry.is_directory())	out |= (1 << 2);
-	if (dentry.is_fifo())		out |= (1 << 3);
-	if (dentry.is_other())		out |= (1 << 4);
-	if (dentry.is_regular_file())	out |= (1 << 5);
-	if (dentry.is_socket())		out |= (1 << 6);
-	if (dentry.is_symlink())	out |= (1 << 7);
-
-	return out;
-}
-
 bool are_files_different(const fs::directory_entry &a, const fs::directory_entry &b) {
+	// a and b are bound to be of the same type at this point
+	assert(a.symlink_status().type() == b.symlink_status().type());
+	auto file_type = a.symlink_status().type();
+
 	// Regular files of different size are bound to be different
-	if (a.is_regular_file() && a.file_size() != b.file_size())
+	if (file_type == fs::file_type::regular && a.file_size() != b.file_size())
 		return true;
 
 	// TODO(qookie): Check for stat errors here
 	struct stat st_a, st_b;
-	stat(a.path().c_str(), &st_a);
-	stat(b.path().c_str(), &st_b);
+	lstat(a.path().c_str(), &st_a);
+	lstat(b.path().c_str(), &st_b);
 
 	// Same inode on the same device are always the same
 	if (st_a.st_dev == st_b.st_dev && st_a.st_ino == st_b.st_ino)
@@ -55,12 +44,12 @@ bool are_files_different(const fs::directory_entry &a, const fs::directory_entry
 	update_progress(a.path());
 
 	// Same target means symlinks are the same
-	if (a.is_symlink()) {
+	if (file_type == fs::file_type::symlink) {
 		return fs::read_symlink(a) != fs::read_symlink(b);
 	}
 
 	// Same contents means regular files are the same
-	if (a.is_regular_file()) {
+	if (file_type == fs::file_type::regular) {
 		std::ifstream a_ifs{a.path(), std::ios::binary};
 		std::ifstream b_ifs{b.path(), std::ios::binary};
 
@@ -125,12 +114,18 @@ std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::dire
 		auto &a_child = a_it->second;
 		auto &b_child = b_it->second;
 
-		if (file_type_i(a_child) != file_type_i(b_child)) {
+		// Use symlink_status instead of status to avoid following symlinks.
+		// Prevents confusion caused by is_directory() and is_symlink() both
+		// being true because the former follows the symlink and the latter doesn't.
+		auto a_type = a_child.symlink_status().type();
+		auto b_type = b_child.symlink_status().type();
+
+		if (a_type != b_type) {
 			diffs.push_back({diff_type::file_type, -1, name});
 			continue;
 		}
 
-		if (a_child.is_directory()) {
+		if (a_type == fs::file_type::directory) {
 			auto sub_diff = diff_trees(a_child, b_child);
 			if (sub_diff.size()) {
 				diffs.push_back({diff_type::contents, -1,
