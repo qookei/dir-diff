@@ -44,7 +44,7 @@ Output control:\n\
   -l, --no-legend                 don't display the legend before the diff\n\
   -q, --quiet                     don't display the progress indicator\n\
   -c, --color=WHEN                force (WHEN is 'force' or 'always'), or\n\
-                                  disable (WHEN is 'never' or 'off') the use of colors\n\
+                                  disable (WHEN is 'never' or 'off') the use of colors;\n\
                                   by default colors are enabled if the output is a tty\n");
 
 	fmtns::print("\n");

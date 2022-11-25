@@ -31,6 +31,8 @@ configure_file(input : 'src/config.hpp.in',
 	output : 'config.hpp',
 	configuration : conf_data)
 
+install_man('man/dir-diff.1')
+
 executable('dir-diff',
 	'src/main.cpp', 'src/tree.cpp',
 	include_directories : 'src/',
