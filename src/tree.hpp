@@ -31,6 +31,8 @@ struct diff {
 	int n;
 	std::string name;
 
+	fs::path a_path, b_path;
+
 	std::vector<diff> sub_diffs = {};
 };
 

@@ -128,8 +128,8 @@ std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::dire
 		if (a_type == fs::file_type::directory) {
 			auto sub_diff = diff_trees(a_child, b_child);
 			if (sub_diff.size()) {
-				diffs.push_back({diff_type::contents, -1,
-						name, std::move(sub_diff)});
+				diffs.push_back({diff_type::contents, -1, name,
+						a_child.path(), b_child.path(), std::move(sub_diff)});
 			}
 
 			continue;

@@ -22,6 +22,9 @@
 #include <tree.hpp>
 #include <print.hpp>
 #include <unistd.h>
+#include <charconv>
+#include <sys/wait.h>
+#include <cstring>
 
 void display_version() {
 	fmtns::print("dir-diff {0}\n", config::version);
@@ -45,7 +48,10 @@ Output control:\n\
   -q, --quiet                     don't display the progress indicator\n\
   -c, --color=WHEN                force (WHEN is 'force' or 'always'), or\n\
                                   disable (WHEN is 'never' or 'off') the use of colors;\n\
-                                  by default colors are enabled if the output is a tty\n");
+                                  by default colors are enabled if the output is a tty\n\
+  -d, --git-diff=DEPTH            generate a patch file with 'git diff --no-index' for\n\
+                                  every pair of differing directories at the given depth\n\
+                                  (0 being children of the '<root>' node)\n");
 
 	fmtns::print("\n");
 
@@ -64,6 +70,8 @@ const std::array<std::string, 8> progress_strs{
 
 fs::path root1, root2;
 bool run_quietly = false;
+
+int git_diff_depth = -1;
 
 const char *ansi_reset = "\e[0m";
 const char *ansi_red = "\e[31m";
@@ -96,6 +104,37 @@ void update_progress(const fs::path &path) {
 	fmtns::print(std::cerr, "{0}{1} {2}", ansi_clear_to_beginning_of_line, indicator, path_str);
 }
 
+void generate_git_diff(const fs::path &a, const fs::path &b) {
+	pid_t pid = fork();
+	if (pid < 0) {
+		fmtns::print(std::cerr, "Failed to fork: \"{0}\"\n", strerror(errno));
+	} else if (pid == 0) {
+		auto patch_path = fmtns::format("{0}.{1:x}-{2:x}.patch",
+				a.filename().string(),
+				fs::hash_value(a), fs::hash_value(b));
+
+		execlp("git",
+			"git", "-P",
+			"diff",
+			"--no-index",
+			"--patch-with-stat",
+			"--output", patch_path.c_str(),
+			a.c_str(), b.c_str(),
+			nullptr);
+
+		fmtns::print(std::cerr, "Failed to exec: \"{0}\"\n", strerror(errno));
+
+		_Exit(127);
+	} else {
+		int wstatus;
+		wait(&wstatus);
+
+		if (WEXITSTATUS(wstatus) != 0 && WEXITSTATUS(wstatus) != 1) {
+			fmtns::print(std::cerr, "git diff invocation failed\n");
+		}
+	}
+}
+
 void display_diff(const diff &diff, int depth = 0) {
 	for (int i = 0; i < depth; i++)
 		fmtns::print("|  ");
@@ -118,6 +157,10 @@ void display_diff(const diff &diff, int depth = 0) {
 				// Avoid showing contents of .git
 				print_in_color(ansi_yellow, "? {0} (not descending)\n", diff.name);
 			} else {
+				if (git_diff_depth >= 0 && (depth - 1) == git_diff_depth) {
+					generate_git_diff(diff.a_path, diff.b_path);
+				}
+
 				print_in_color(ansi_yellow, "? {0}:\n", diff.name);
 				for (const auto &sub : diff.sub_diffs)
 					display_diff(sub, depth + 1);
@@ -133,6 +176,7 @@ int main(int argc, char **argv) {
 		{"no-legend",	no_argument,		0, 'l'},
 		{"quiet",	no_argument,		0, 'q'},
 		{"color",	required_argument,	0, 'c'},
+		{"git-diff",	required_argument,	0, 'd'},
 		{0,		0,			0, 0}
 	};
 
@@ -142,7 +186,7 @@ int main(int argc, char **argv) {
 
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hvlqc:", options, &option_index);
+		int c = getopt_long(argc, argv, "hvlqc:d:", options, &option_index);
 
 		if (c == -1)
 			break;
@@ -160,6 +204,14 @@ int main(int argc, char **argv) {
 					never_color = true;
 				else {
 					fmtns::print(std::cerr, "Unknown --color mode: {0}\n", v);
+					return 1;
+				}
+				break;
+			}
+			case 'd': {
+				auto out = std::from_chars(optarg, optarg + strlen(optarg), git_diff_depth);
+				if (out.ec != std::errc{}) {
+					fmtns::print(std::cerr, "Illegal value for --git-diff: {0}\n", optarg);
 					return 1;
 				}
 				break;
@@ -189,7 +241,7 @@ int main(int argc, char **argv) {
 	if (!diffs.size()) {
 		fmtns::print("No differences.\n");
 	} else {
-		diff root{diff_type::contents, -1, "<root>", std::move(diffs)};
+		diff root{diff_type::contents, -1, "<root>", "", "", std::move(diffs)};
 
 		if (print_legend) {
 			fmtns::print("Legend:\n");
