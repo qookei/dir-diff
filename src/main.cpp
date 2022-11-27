@@ -62,7 +62,14 @@ Output control:\n\
                                   by default colors are enabled if the output is a tty\n\
   -d, --git-diff=DEPTH            generate a patch file with 'git diff --no-index' for\n\
                                   every pair of differing directories at the given depth\n\
-                                  (0 being children of the '<root>' node)\n");
+                                  (0 being children of the '<root>' node)\n\
+  -p, --prune=PATTERN             do not show the inner differences of directories whose\n\
+                                  paths match the specified pattern, relative to the source paths,\n\
+                                  that is, when comparing /a/ and /b/, these prefixes are not included;\n\
+                                  can be specified multiple times to add multiple patterns (a diff being\n\
+                                  pruned if any of them matches); see glob(7) for pattern syntax\n\
+  -P, --no-default-prune          do not add default prune patterns (\".git\" and \"**/.git\") to the\n\
+                                  prune list\n");
 
 	fmtns::print("\n");
 
@@ -82,11 +89,24 @@ const std::array<std::string, 8> progress_strs{
 fs::path root1, root2;
 bool run_quietly = false;
 std::vector<std::string> ignore_patterns;
+std::vector<std::string> prune_patterns;
+std::vector<std::string> default_prune_patterns = {".git", "**/.git"};
 
 bool should_ignore_file(const fs::path &path, bool a_path) {
 	auto str = path.string().substr((a_path ? root1 : root2).string().size());
 
 	for (const auto &pat : ignore_patterns) {
+		if (!fnmatch(pat.c_str(), str.c_str(), FNM_PATHNAME))
+			return true;
+	}
+
+	return false;
+}
+
+bool should_prune_diff(const diff &diff) {
+	auto str = diff.a_path.string().substr(root1.string().size());
+
+	for (const auto &pat : prune_patterns) {
 		if (!fnmatch(pat.c_str(), str.c_str(), FNM_PATHNAME))
 			return true;
 	}
@@ -176,9 +196,9 @@ void display_diff(const diff &diff, int depth = 0) {
 		case contents:
 			if (!diff.sub_diffs.size()) {
 				print_in_color(ansi_yellow, "? {0}\n", diff.name);
-			} else if (diff.name == ".git") {
+			} else if (should_prune_diff(diff)) {
 				// Avoid showing contents of .git
-				print_in_color(ansi_yellow, "? {0} (not descending)\n", diff.name);
+				print_in_color(ansi_yellow, "? {0} (pruned; different)\n", diff.name);
 			} else {
 				if (git_diff_depth >= 0 && (depth - 1) == git_diff_depth) {
 					generate_git_diff(diff.a_path, diff.b_path);
@@ -201,6 +221,8 @@ int main(int argc, char **argv) {
 		{"color",	required_argument,	0, 'c'},
 		{"git-diff",	required_argument,	0, 'd'},
 		{"ignore",	required_argument,	0, 'i'},
+		{"prune",	required_argument,	0, 'p'},
+		{"no-default-prune",	no_argument,	0, 'P'},
 		{0,		0,			0, 0}
 	};
 
@@ -208,9 +230,11 @@ int main(int argc, char **argv) {
 
 	bool force_color = false, never_color = false;
 
+	bool add_default_prune_patterns = true;
+
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hvlqc:d:i:", options, &option_index);
+		int c = getopt_long(argc, argv, "hvlqc:d:i:p:P", options, &option_index);
 
 		if (c == -1)
 			break;
@@ -244,6 +268,11 @@ int main(int argc, char **argv) {
 				ignore_patterns.push_back(optarg);
 				break;
 			}
+			case 'p': {
+				prune_patterns.push_back(optarg);
+				break;
+			}
+			case 'P': add_default_prune_patterns = false; break;
 			case '?': return 1;
 		}
 	}
@@ -264,6 +293,11 @@ int main(int argc, char **argv) {
 		ansi_reset = ansi_red = ansi_green = ansi_yellow = ansi_blue = "";
 	}
 
+	if (add_default_prune_patterns) {
+		for (const auto &pat : default_prune_patterns)
+			prune_patterns.push_back(pat);
+	}
+
 	auto diffs = diff_trees(fs::directory_entry{root1}, fs::directory_entry{root2});
 	if (!run_quietly && using_color)
 		fmtns::print(std::cerr, "{0}", ansi_clear_to_beginning_of_line);
@@ -271,7 +305,7 @@ int main(int argc, char **argv) {
 	if (!diffs.size()) {
 		fmtns::print("No differences.\n");
 	} else {
-		diff root{diff_type::contents, -1, "<root>", "", "", std::move(diffs)};
+		diff root{diff_type::contents, -1, "<root>", root1, root2, std::move(diffs)};
 
 		if (print_legend) {
 			fmtns::print("Legend:\n");

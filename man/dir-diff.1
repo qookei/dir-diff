@@ -32,6 +32,17 @@ by default colors are enabled if the output is a tty
 generate a patch file with 'git diff \fB\-\-no\-index\fR' for
 every pair of differing directories at the given depth
 (0 being children of the '<root>' node)
+.TP
+\fB\-p\fR, \fB\-\-prune\fR=\fI\,PATTERN\/\fR
+do not show the inner differences of directories whose
+paths match the specified pattern, relative to the source paths,
+that is, when comparing /a/ and /b/, these prefixes are not included;
+can be specified multiple times to add multiple patterns (a diff being
+pruned if any of them matches); see glob(7) for pattern syntax
+.TP
+\fB\-P\fR, \fB\-\-no\-default\-prune\fR
+do not add default prune patterns (".git" and "**/.git") to the
+prune list
 .SS "Miscellaneous:"
 .TP
 \fB\-v\fR, \fB\-\-version\fR
