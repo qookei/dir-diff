@@ -69,7 +69,9 @@ Output control:\n\
                                   can be specified multiple times to add multiple patterns (a diff being\n\
                                   pruned if any of them matches); see glob(7) for pattern syntax\n\
   -P, --no-default-prune          do not add default prune patterns (\".git\" and \"**/.git\") to the\n\
-                                  prune list\n");
+                                  prune list\n\
+  -m, --max-depth=DEPTH           do not show any inner differences of directories past the specified\n\
+                                  depth (depth 0 pruning the '<root>' node itself)\n");
 
 	fmtns::print("\n");
 
@@ -92,6 +94,8 @@ std::vector<std::string> ignore_patterns;
 std::vector<std::string> prune_patterns;
 std::vector<std::string> default_prune_patterns = {".git", "**/.git"};
 
+int max_depth = -1;
+
 bool should_ignore_file(const fs::path &path, bool a_path) {
 	auto str = path.string().substr((a_path ? root1 : root2).string().size());
 
@@ -103,7 +107,10 @@ bool should_ignore_file(const fs::path &path, bool a_path) {
 	return false;
 }
 
-bool should_prune_diff(const diff &diff) {
+bool should_prune_diff(const diff &diff, int depth) {
+	if (max_depth >= 0 && depth > (max_depth - 1))
+		return true;
+
 	auto str = diff.a_path.string().substr(root1.string().size());
 
 	for (const auto &pat : prune_patterns) {
@@ -196,8 +203,7 @@ void display_diff(const diff &diff, int depth = 0) {
 		case contents:
 			if (!diff.sub_diffs.size()) {
 				print_in_color(ansi_yellow, "? {0}\n", diff.name);
-			} else if (should_prune_diff(diff)) {
-				// Avoid showing contents of .git
+			} else if (should_prune_diff(diff, depth)) {
 				print_in_color(ansi_yellow, "? {0} (pruned; different)\n", diff.name);
 			} else {
 				if (git_diff_depth >= 0 && (depth - 1) == git_diff_depth) {
@@ -223,6 +229,7 @@ int main(int argc, char **argv) {
 		{"ignore",	required_argument,	0, 'i'},
 		{"prune",	required_argument,	0, 'p'},
 		{"no-default-prune",	no_argument,	0, 'P'},
+		{"max-depth",	required_argument,	0, 'm'},
 		{0,		0,			0, 0}
 	};
 
@@ -234,7 +241,7 @@ int main(int argc, char **argv) {
 
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hvlqc:d:i:p:P", options, &option_index);
+		int c = getopt_long(argc, argv, "hvlqc:d:i:p:Pm:", options, &option_index);
 
 		if (c == -1)
 			break;
@@ -273,6 +280,14 @@ int main(int argc, char **argv) {
 				break;
 			}
 			case 'P': add_default_prune_patterns = false; break;
+			case 'm': {
+				auto out = std::from_chars(optarg, optarg + strlen(optarg), max_depth);
+				if (out.ec != std::errc{}) {
+					fmtns::print(std::cerr, "Illegal value for --max-depth: {0}\n", optarg);
+					return 1;
+				}
+				break;
+			}
 			case '?': return 1;
 		}
 	}

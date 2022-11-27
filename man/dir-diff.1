@@ -43,6 +43,10 @@ pruned if any of them matches); see glob(7) for pattern syntax
 \fB\-P\fR, \fB\-\-no\-default\-prune\fR
 do not add default prune patterns (".git" and "**/.git") to the
 prune list
+.TP
+\fB\-m\fR, \fB\-\-max\-depth\fR=\fI\,DEPTH\/\fR
+do not show any inner differences of directories past the specified
+depth (depth 0 pruning the '<root>' node itself)
 .SS "Miscellaneous:"
 .TP
 \fB\-v\fR, \fB\-\-version\fR
