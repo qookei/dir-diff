@@ -101,6 +101,12 @@ std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::dire
 		auto a_it = a_children.find(name);
 		auto b_it = b_children.find(name);
 
+		if (a_it != a_children.end() && should_ignore_file(a_it->second.path(), true))
+			continue;
+
+		if (b_it != a_children.end() && should_ignore_file(b_it->second.path(), false))
+			continue;
+
 		if ((a_it == a_children.end()) ^ (b_it == b_children.end())) {
 			diffs.push_back({diff_type::missing,
 					a_it == a_children.end() ? 0 : 1,

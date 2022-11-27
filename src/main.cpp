@@ -25,6 +25,7 @@
 #include <charconv>
 #include <sys/wait.h>
 #include <cstring>
+#include <fnmatch.h>
 
 void display_version() {
 	fmtns::print("dir-diff {0}\n", config::version);
@@ -39,6 +40,16 @@ There is NO WARRANTY, to the extent permitted by law.\n", 2022);
 void display_help(const char *progname) {
 	fmtns::print("Usage: {0} [OPTION]... PATH PATH\n", progname);
 	fmtns::print("Compute the difference between the specified paths.\n");
+
+	fmtns::print("\n");
+
+	fmtns::print("\
+Input control:\n\
+  -i, --ignore=PATTERN            ignore all paths that match the specified pattern,\n\
+                                  relative to the source paths, that is, when comparing\n\
+                                  /a/ and /b/, these prefixes are not included; can be specified\n\
+                                  multiple times to add multiple patterns (a file being ignored\n\
+                                  if any of them matches); see glob(7) for pattern syntax\n");
 
 	fmtns::print("\n");
 
@@ -70,6 +81,18 @@ const std::array<std::string, 8> progress_strs{
 
 fs::path root1, root2;
 bool run_quietly = false;
+std::vector<std::string> ignore_patterns;
+
+bool should_ignore_file(const fs::path &path, bool a_path) {
+	auto str = path.string().substr((a_path ? root1 : root2).string().size());
+
+	for (const auto &pat : ignore_patterns) {
+		if (!fnmatch(pat.c_str(), str.c_str(), FNM_PATHNAME))
+			return true;
+	}
+
+	return false;
+}
 
 int git_diff_depth = -1;
 
@@ -177,6 +200,7 @@ int main(int argc, char **argv) {
 		{"quiet",	no_argument,		0, 'q'},
 		{"color",	required_argument,	0, 'c'},
 		{"git-diff",	required_argument,	0, 'd'},
+		{"ignore",	required_argument,	0, 'i'},
 		{0,		0,			0, 0}
 	};
 
@@ -186,7 +210,7 @@ int main(int argc, char **argv) {
 
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hvlqc:d:", options, &option_index);
+		int c = getopt_long(argc, argv, "hvlqc:d:i:", options, &option_index);
 
 		if (c == -1)
 			break;
@@ -216,13 +240,19 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
+			case 'i': {
+				ignore_patterns.push_back(optarg);
+				break;
+			}
 			case '?': return 1;
 		}
 	}
 
 	if (optind < argc && argc - optind >= 2) {
 		root1 = argv[optind++];
+		root1 /= "";
 		root2 = argv[optind++];
+		root2 /= "";
 	} else {
 		fmtns::print("Missing positional argument(s): <path> <path>\n");
 		return 1;

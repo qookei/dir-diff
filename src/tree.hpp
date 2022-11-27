@@ -37,5 +37,6 @@ struct diff {
 };
 
 void update_progress(const fs::path &path);
+bool should_ignore_file(const fs::path &path, bool a_path);
 
 std::vector<diff> diff_trees(const fs::directory_entry &a_dentry, const fs::directory_entry &b_dentry);

@@ -7,6 +7,14 @@ dir-diff \- compute the difference between the specified paths
 [\fI\,OPTION\/\fR]... \fI\,PATH PATH\/\fR
 .SH DESCRIPTION
 Compute the difference between the specified paths.
+.SS "Input control:"
+.TP
+\fB\-i\fR, \fB\-\-ignore\fR=\fI\,PATTERN\/\fR
+ignore all paths that match the specified pattern,
+relative to the source paths, that is, when comparing
+/a/ and /b/, these prefixes are not included; can be specified
+multiple times to add multiple patterns (a file being ignored
+if any of them matches); see glob(7) for pattern syntax
 .SS "Output control:"
 .TP
 \fB\-l\fR, \fB\-\-no\-legend\fR
@@ -37,3 +45,5 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 .br
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+\fBglob\fP(7)
