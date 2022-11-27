@@ -46,8 +46,8 @@ void display_help(const char *progname) {
 	fmtns::print("\
 Input control:\n\
   -i, --ignore=PATTERN            ignore all paths that match the specified pattern,\n\
-                                  relative to the source paths, that is, when comparing\n\
-                                  /a/ and /b/, these prefixes are not included; can be specified\n\
+                                  relative to the source paths (that is, when comparing\n\
+                                  /a/ and /b/, these prefixes are not included); can be specified\n\
                                   multiple times to add multiple patterns (a file being ignored\n\
                                   if any of them matches); see glob(7) for pattern syntax\n");
 
@@ -64,8 +64,8 @@ Output control:\n\
                                   every pair of differing directories at the given depth\n\
                                   (0 being children of the '<root>' node)\n\
   -p, --prune=PATTERN             do not show the inner differences of directories whose\n\
-                                  paths match the specified pattern, relative to the source paths,\n\
-                                  that is, when comparing /a/ and /b/, these prefixes are not included;\n\
+                                  paths match the specified pattern, relative to the source paths\n\
+                                  (that is, when comparing /a/ and /b/, these prefixes are not included);\n\
                                   can be specified multiple times to add multiple patterns (a diff being\n\
                                   pruned if any of them matches); see glob(7) for pattern syntax\n\
   -P, --no-default-prune          do not add default prune patterns (\".git\" and \"**/.git\") to the\n\
