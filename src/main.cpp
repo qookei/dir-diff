@@ -123,12 +123,12 @@ bool should_prune_diff(const diff &diff, int depth) {
 
 int git_diff_depth = -1;
 
-const char *ansi_reset = "\e[0m";
-const char *ansi_red = "\e[31m";
-const char *ansi_green = "\e[32m";
-const char *ansi_yellow = "\e[33m";
-const char *ansi_blue = "\e[34m";
-const char *ansi_clear_to_beginning_of_line = "\e[2K\e[G";
+const char *ansi_reset = "\x1b[0m";
+const char *ansi_red = "\x1b[31m";
+const char *ansi_green = "\x1b[32m";
+const char *ansi_yellow = "\x1b[33m";
+const char *ansi_blue = "\x1b[34m";
+const char *ansi_clear_to_beginning_of_line = "\x1b[2K\x1b[G";
 bool using_color = true;
 
 template <typename ...Args>
