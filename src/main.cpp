@@ -25,7 +25,7 @@
 #include <charconv>
 #include <sys/wait.h>
 #include <cstring>
-#include <fnmatch.h>
+#include <wildmatch/wildmatch.hpp>
 
 void display_version() {
 	fmtns::print("dir-diff {0}\n", config::version);
@@ -103,7 +103,7 @@ bool should_ignore_file(const fs::path &path, bool a_path) {
 	auto str = path.string().substr((a_path ? root1 : root2).string().size());
 
 	for (const auto &pat : ignore_patterns) {
-		if (!fnmatch(pat.c_str(), str.c_str(), FNM_PATHNAME))
+		if (wild::match(pat.c_str(), str.c_str()))
 			return true;
 	}
 
@@ -117,7 +117,7 @@ bool should_prune_diff(const diff &diff, int depth) {
 	auto str = diff.a_path.string().substr(root1.string().size());
 
 	for (const auto &pat : prune_patterns) {
-		if (!fnmatch(pat.c_str(), str.c_str(), FNM_PATHNAME))
+		if (wild::match(pat.c_str(), str.c_str()))
 			return true;
 	}
 

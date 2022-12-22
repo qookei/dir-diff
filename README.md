@@ -50,3 +50,6 @@ are skipped):
 ## License
 
 This project is licensed under the GPLv3 (or later) license.
+
+Additionally, this project incorporates the [wildmatch](https://github.com/davvid/wildmatch)
+library as a submodule, which is licensed under the BSD-3-Clause license.

@@ -1,0 +1,3 @@
+[submodule "subprojects/wildmatch/wildmatch"]
+	path = subprojects/wildmatch/wildmatch
+	url = https://github.com/davvid/wildmatch

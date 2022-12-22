@@ -24,6 +24,8 @@ if not meson.get_compiler('cpp').has_header('format')
 	deps += dependency('fmt')
 endif
 
+deps += dependency('wildmatch')
+
 conf_data = configuration_data()
 conf_data.set_quoted('VERSION', meson.project_version())
 
