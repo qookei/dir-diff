@@ -49,7 +49,10 @@ Input control:\n\
                                   relative to the source paths (that is, when comparing\n\
                                   /a/ and /b/, these prefixes are not included); can be specified\n\
                                   multiple times to add multiple patterns (a file being ignored\n\
-                                  if any of them matches); see glob(7) for pattern syntax\n");
+                                  if any of them matches); see glob(7) for pattern syntax\n\
+  --paranoid                      check file contents even if files appear to be obviously different\n\
+                                  or same, ie. if the sizes differ or if it's the same inode on the\n\
+                                  same device\n");
 
 	fmtns::print("\n");
 
@@ -230,6 +233,7 @@ int main(int argc, char **argv) {
 		{"prune",	required_argument,	0, 'p'},
 		{"no-default-prune",	no_argument,	0, 'P'},
 		{"max-depth",	required_argument,	0, 'm'},
+		{"paranoid",	no_argument,		0, 300},
 		{0,		0,			0, 0}
 	};
 
@@ -288,6 +292,7 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
+			case 300: paranoid = true; break;
 			case '?': return 1;
 		}
 	}

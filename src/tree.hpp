@@ -36,6 +36,8 @@ struct diff {
 	std::vector<diff> sub_diffs = {};
 };
 
+inline bool paranoid = false;
+
 void update_progress(const fs::path &path);
 bool should_ignore_file(const fs::path &path, bool a_path);
 

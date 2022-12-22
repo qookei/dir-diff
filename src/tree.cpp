@@ -27,19 +27,21 @@ bool are_files_different(const fs::directory_entry &a, const fs::directory_entry
 	// a and b are bound to be of the same type at this point
 	assert(a.symlink_status().type() == b.symlink_status().type());
 	auto file_type = a.symlink_status().type();
-
-	// Regular files of different size are bound to be different
-	if (file_type == fs::file_type::regular && a.file_size() != b.file_size())
-		return true;
-
+	
 	// TODO(qookie): Check for stat errors here
 	struct stat st_a, st_b;
 	lstat(a.path().c_str(), &st_a);
 	lstat(b.path().c_str(), &st_b);
+	
+	if (!paranoid) {
+		// Regular files of different size are bound to be different
+		if (file_type == fs::file_type::regular && a.file_size() != b.file_size())
+			return true;
 
-	// Same inode on the same device are always the same
-	if (st_a.st_dev == st_b.st_dev && st_a.st_ino == st_b.st_ino)
-		return false;
+		// Same inode on the same device are always the same
+		if (st_a.st_dev == st_b.st_dev && st_a.st_ino == st_b.st_ino)
+			return false;
+	}
 
 	update_progress(a.path());
 
