@@ -15,7 +15,7 @@
 
 project('dir-diff', 'cpp',
 	license : 'GPL-3.0-or-later',
-	version : '0.1',
+	version : '1.0',
 	default_options : ['cpp_std=c++20'])
 
 deps = []
