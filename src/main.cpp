@@ -45,11 +45,10 @@ void display_help(const char *progname) {
 
 	fmtns::print("\
 Input control:\n\
-  -i, --ignore=PATTERN            ignore all paths that match the specified pattern,\n\
-                                  relative to the source paths (that is, when comparing\n\
-                                  /a/ and /b/, these prefixes are not included); can be specified\n\
+  -i, --ignore=PATTERN            ignore all paths that match the specified pattern\n\
+                                  (see below for explanation of the syntax); can be specified\n\
                                   multiple times to add multiple patterns (a file being ignored\n\
-                                  if any of them matches); see glob(7) for pattern syntax\n\
+                                  if any of them matches)\n\
   --paranoid                      check file contents even if files appear to be obviously different\n\
                                   or same, ie. if the sizes differ or if it's the same inode on the\n\
                                   same device\n");
@@ -67,10 +66,9 @@ Output control:\n\
                                   every pair of differing directories at the given depth\n\
                                   (0 being children of the '<root>' node)\n\
   -p, --prune=PATTERN             do not show the inner differences of directories whose\n\
-                                  paths match the specified pattern, relative to the source paths\n\
-                                  (that is, when comparing /a/ and /b/, these prefixes are not included);\n\
-                                  can be specified multiple times to add multiple patterns (a diff being\n\
-                                  pruned if any of them matches); see glob(7) for pattern syntax\n\
+                                  paths match the specified pattern (see below for explanation\n\
+                                  of the syntax); can be specified multiple times to add multiple\n\
+                                  patterns (a diff being pruned if any of them matches)\n\
   -P, --no-default-prune          do not add default prune patterns (\".git\" and \"**/.git\") to the\n\
                                   prune list\n\
   -m, --max-depth=DEPTH           do not show any inner differences of directories past the specified\n\
@@ -82,6 +80,14 @@ Output control:\n\
 Miscellaneous:\n\
   -v, --version                   display the version information and exit\n\
   -h, --help                      display this help text and exit\n");
+
+	fmtns::print("\n");
+
+	fmtns::print("\
+PATTERNs are matched to paths relative to the source paths (that is, when comparing\n\
+/a/ and /b/, these prefixes are not included). This syntax is as described in glob(7),\n\
+with the addition of support for the globstar bash extension (\"**\") for matching directories\n\
+recursively, as described in bash(1).\n");
 
 	fmtns::print("\n");
 }

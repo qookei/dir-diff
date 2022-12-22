@@ -10,11 +10,10 @@ Compute the difference between the specified paths.
 .SS "Input control:"
 .TP
 \fB\-i\fR, \fB\-\-ignore\fR=\fI\,PATTERN\/\fR
-ignore all paths that match the specified pattern,
-relative to the source paths (that is, when comparing
-/a/ and /b/, these prefixes are not included); can be specified
+ignore all paths that match the specified pattern
+(see below for explanation of the syntax); can be specified
 multiple times to add multiple patterns (a file being ignored
-if any of them matches); see glob(7) for pattern syntax
+if any of them matches)
 .TP
 \fB\-\-paranoid\fR
 check file contents even if files appear to be obviously different
@@ -40,10 +39,9 @@ every pair of differing directories at the given depth
 .TP
 \fB\-p\fR, \fB\-\-prune\fR=\fI\,PATTERN\/\fR
 do not show the inner differences of directories whose
-paths match the specified pattern, relative to the source paths
-(that is, when comparing /a/ and /b/, these prefixes are not included);
-can be specified multiple times to add multiple patterns (a diff being
-pruned if any of them matches); see glob(7) for pattern syntax
+paths match the specified pattern (see below for explanation
+of the syntax); can be specified multiple times to add multiple
+patterns (a diff being pruned if any of them matches)
 .TP
 \fB\-P\fR, \fB\-\-no\-default\-prune\fR
 do not add default prune patterns (".git" and "**/.git") to the
@@ -59,6 +57,11 @@ display the version information and exit
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 display this help text and exit
+.PP
+PATTERNs are matched to paths relative to the source paths (that is, when comparing
+/a/ and /b/, these prefixes are not included). This syntax is as described in glob(7),
+with the addition of support for the globstar bash extension ("**") for matching directories
+recursively, as described in bash(1).
 .SH COPYRIGHT
 Copyright \(co 2022 qookie.
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
@@ -66,4 +69,4 @@ License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
-\fBglob\fP(7)
+\fBglob\fP(7), \fBbash\fP(1)
